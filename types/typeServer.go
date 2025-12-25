@@ -11,12 +11,12 @@ var Servers = make(map[string]*Context)
 type Context struct {
 	OptedInUsers        map[string]bool         // userIDs
 	WhitelistedChannels map[string]bool         // channelIDs
-	GuildModel          *MarkovChain            // server-wide -> model
+	GuildModel          *MarkovChain            // server-wide model
 	ChannelModels       map[string]*MarkovChain // channelID -> model
-	mu                  sync.RWMutex
+	Mu                  sync.RWMutex
 }
 
-func getServerData(guildID string) *Context {
+func GetServerData(guildID string) *Context {
 	global.DataLock.Lock()
 	defer global.DataLock.Unlock()
 
