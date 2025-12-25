@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -9,16 +8,8 @@ import (
 	"github.com/supitszaire/derangedium-go/types"
 )
 
-func Pretrain(s *discordgo.Session, guildID, channelID string) {
+func Pretrain(s *discordgo.Session, guildID, channelID string) int {
 	ctx := types.GetServerData(guildID)
-
-	ctx.Mu.RLock()
-	if !ctx.WhitelistedChannels[channelID] {
-		ctx.Mu.RUnlock()
-		s.ChannelMessageSend(channelID, "⚠️ This channel isn't whitelisted. Use /whitelist-channel first.")
-		return
-	}
-	ctx.Mu.RUnlock()
 
 	var lastID string
 	totalMessages := 0
@@ -60,5 +51,5 @@ func Pretrain(s *discordgo.Session, guildID, channelID string) {
 		time.Sleep(time.Second) // Rate limit
 	}
 
-	s.ChannelMessageSend(channelID, fmt.Sprintf("✅ Pre-training complete! Processed %d messages.", totalMessages))
+	return totalMessages
 }

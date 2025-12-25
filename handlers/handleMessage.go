@@ -34,7 +34,6 @@ func HandleMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 		ctx.Mu.RUnlock()
 
 		if !optedIn {
-			// 20% chance to show opt in
 			if rand.Intn(5) == 0 {
 				s.ChannelMessageSend(m.ChannelID, "💡 Want to contribute to the markov chain? Opt in with `/opt-in`!")
 			}

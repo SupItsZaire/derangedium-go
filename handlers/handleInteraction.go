@@ -56,7 +56,7 @@ func HandleInteraction(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
-				Content: "✅ This channel is now whitelisted for training!",
+				Content: "✅ This channel is now whitelisted for training! Opted-In users are now contributing to training data.",
 			},
 		})
 
@@ -69,19 +69,38 @@ func HandleInteraction(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
-				Content: "✅ This channel is no longer whitelisted.",
+				Content: "This channel is no longer whitelisted. Training will no longer occur here!",
 			},
 		})
 
 	case "pretrain":
+		// Defer the response since pretrain takes time
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: "🔄 Starting pres-training... This may take a moment.",
-			},
+			Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
 		})
 
-		go Pretrain(s, guildID, i.ChannelID)
+		go func() {
+			channelID := i.ChannelID
+			ctx := types.GetServerData(guildID)
+
+			ctx.Mu.RLock()
+			if !ctx.WhitelistedChannels[channelID] {
+				ctx.Mu.RUnlock()
+				s.FollowupMessageCreate(i.Interaction, false, &discordgo.WebhookParams{
+					Content: "⚠️ This channel isn't whitelisted. Use /whitelist-channel first to train!",
+					Flags:   discordgo.MessageFlagsEphemeral,
+				})
+				return
+			}
+			ctx.Mu.RUnlock()
+
+			total := Pretrain(s, guildID, channelID)
+
+			s.FollowupMessageCreate(i.Interaction, false, &discordgo.WebhookParams{
+				Content: fmt.Sprintf("Pre-training complete! Processed a total of %d messages.", total),
+				Flags:   discordgo.MessageFlagsEphemeral,
+			})
+		}()
 
 	case "generate":
 		scope := "global"
@@ -121,7 +140,7 @@ func HandleInteraction(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		globalSize := len(ctx.GuildModel.Chain)
 		ctx.Mu.RUnlock()
 
-		content := fmt.Sprintf("**Markov Chain Bot Status**\n"+
+		content := fmt.Sprintf("**derangedium-go v0.1.1a stats**\n"+
 			"Opted-in users: %d\n"+
 			"Whitelisted channels: %d\n"+
 			"Global model size: %d word pairs",

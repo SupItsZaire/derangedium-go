@@ -41,12 +41,12 @@ func (m *MarkovChain) Generate(maxWords int) string {
 		return ""
 	}
 
-	Keys := make([]string, 0, len(m.Chain))
+	keys := make([]string, 0, len(m.Chain))
 	for k := range m.Chain {
-		Keys = append(Keys, k)
+		keys = append(keys, k)
 	}
 
-	current := Keys[rand.Intn(len(Keys))]
+	current := keys[rand.Intn(len(keys))]
 	result := []string{current}
 
 	for i := 1; i < maxWords; i++ {
@@ -57,5 +57,6 @@ func (m *MarkovChain) Generate(maxWords int) string {
 		current = next[rand.Intn(len(next))]
 		result = append(result, current)
 	}
+
 	return strings.Join(result, " ")
 }
