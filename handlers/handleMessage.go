@@ -3,17 +3,22 @@ package handlers
 import (
 	"math/rand"
 	"strings"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/supitszaire/derangedium-go/types"
 )
 
 func HandleMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
-	if m.Author.Bot {
-		return
-	}
-
 	ctx := types.GetServerData(m.GuildID)
+
+	if m.Author.Bot {
+		ctx.Mu.Lock()
+		if _, exists := ctx.OptedInUsers[m.Author.ID]; !exists {
+			ctx.OptedInUsers[m.Author.ID] = time.Time{}
+		}
+		ctx.Mu.Unlock()
+	}
 
 	botMentioned := false
 	for _, mention := range m.Mentions {
@@ -30,15 +35,16 @@ func HandleMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	if botMentioned || isReplyToBot {
 		ctx.Mu.RLock()
-		optedIn := ctx.OptedInUsers[m.Author.ID]
+		_, optedIn := ctx.OptedInUsers[m.Author.ID]
 		ctx.Mu.RUnlock()
 
 		if !optedIn {
 			if rand.Intn(5) == 0 {
-				s.ChannelMessageSend(m.ChannelID, "💡 Want to contribute to the markov chain? Opt in with `/opt-in`!")
+				s.ChannelMessageSend(m.ChannelID, "Want to contribute to the markov chain? Opt in with `/opt-in`!")
 			}
 		}
 
+		// Generate response
 		var model *types.MarkovChain
 		ctx.Mu.RLock()
 		if ctx.ChannelModels[m.ChannelID] != nil && rand.Intn(2) == 0 {
@@ -59,14 +65,14 @@ func HandleMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	ctx.Mu.RLock()
 	whitelisted := ctx.WhitelistedChannels[m.ChannelID]
-	optedIn := ctx.OptedInUsers[m.Author.ID]
+	_, optedIn := ctx.OptedInUsers[m.Author.ID]
 	ctx.Mu.RUnlock()
 
 	if !whitelisted || !optedIn {
 		return
 	}
 
-	content := strings.TrimSpace(m.Content)
+	content := cleanMessage(m.Content, s)
 	if content == "" || strings.HasPrefix(content, "/") {
 		return
 	}

@@ -10,6 +10,20 @@ var Commands = []*discordgo.ApplicationCommand{
 	{
 		Name:        "opt-in",
 		Description: "Opt in to contribute your messages to the markov chain",
+		Options: []*discordgo.ApplicationCommandOption{
+			{
+				Type:        discordgo.ApplicationCommandOptionBoolean,
+				Name:        "backdate",
+				Description: "Include all your past messages (default: false, only future messages)",
+				Required:    false,
+			},
+			{
+				Type:        discordgo.ApplicationCommandOptionString,
+				Name:        "since",
+				Description: "If backdating, start from this date (YYYY-MM-DD, e.g., 2022-02-02)",
+				Required:    false,
+			},
+		},
 	},
 	{
 		Name:        "opt-out",
